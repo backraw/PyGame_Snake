@@ -55,27 +55,31 @@ class Snake(Box):
         # Store the speed
         self.speed = SNAKE_SPEED
 
-        # Create another box for the snake to eat
+        # Store the a to eat
         self.to_eat = Box(randint(0, WINDOW_SIZE[0]), randint(0, WINDOW_SIZE[1]))
 
     def handle_movement(self):
-        """Handles the movement according to LEFT, RIGHT, UP and DOWN keys pressed."""
+        """Changes the direction according to LEFT, RIGHT, UP and DOWN keys pressed."""
         # Has the player decided yet?
         if self.direction is None:
 
             # If not, don't go any further
             return
 
+        # If yes, handle the LEFT key...
         if self.direction == pygame.K_LEFT:
             self.x -= self.speed
 
-        if self.direction == pygame.K_RIGHT:
+        # ... the RIGHT key...
+        elif self.direction == pygame.K_RIGHT:
             self.x += self.speed
 
-        if self.direction == pygame.K_UP:
+        # ... the UP key...
+        elif self.direction == pygame.K_UP:
             self.y -= self.speed
 
-        if self.direction == pygame.K_DOWN:
+        # ... the DOWN key...
+        elif self.direction == pygame.K_DOWN:
             self.y += self.speed
 
     def hit_wall(self):
@@ -84,8 +88,8 @@ class Snake(Box):
 
     def hit_box(self):
         """Returns whether the snake has hit the other box."""
-        return (self.x <= self.to_eat.x + BOX_SIZE and self.x >= self.to_eat.x - BOX_SIZE)\
-            and (self.y <= self.to_eat.y + BOX_SIZE and self.y >= self.to_eat.y - BOX_SIZE)
+        return self.to_eat.x - BOX_SIZE <= self.x <= self.to_eat.x + BOX_SIZE \
+            and self.to_eat.y - BOX_SIZE <= self.y <= self.to_eat.y + BOX_SIZE
 
 
 # ================================================
