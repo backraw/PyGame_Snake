@@ -17,9 +17,9 @@ import pygame
 WINDOW_SIZE = (1024, 768)
 
 # Store colors
-COLOR_WHITE = (255, 255, 255)
 COLOR_BLACK = (0, 0, 0)
 COLOR_SNAKE = (170, 60, 0)
+COLOR_WHITE = (255, 255, 255)
 
 # Store the size of a box
 BOX_SIZE = 10
