@@ -22,7 +22,14 @@ pygame.init()
 # >> CONSTANTS
 # ================================================
 # Store display info
-DISPLAY_INFO = pygame.display.Info()
+_DISPLAY_INFO = pygame.display.Info()
+DISPLAY_WIDTH = _DISPLAY_INFO.current_w
+DISPLAY_HEIGHT = _DISPLAY_INFO.current_h
+
+if DISPLAY_WIDTH > 1024 and DISPLAY_HEIGHT > 768:
+    DISPLAY_FLAGS = 0
+else:
+    DISPLAY_FLAGS = pygame.FULLSCREEN
 
 # Store opposite keys
 OPPOSITE_KEYS = {
@@ -41,7 +48,7 @@ COLOR_WHITE = (255, 255, 255)
 BOX_SIZE = 10
 
 # Store the snake's speed
-SNAKE_SPEED = 2
+SNAKE_SPEED = 3
 
 
 # ================================================
@@ -95,15 +102,17 @@ class Box(object):
     @staticmethod
     def generate_random():
         """Returns a random box."""
-        return Box(randint(0, DISPLAY_INFO.current_w), randint(0, DISPLAY_INFO.current_h), COLOR_BLACK)
+        return Box(randint(0, DISPLAY_WIDTH), randint(0, DISPLAY_HEIGHT), COLOR_BLACK)
 
 
-class Snake(list):
+class Snake(Box):
+
+    """Adds snake logic to a box."""
 
     def __init__(self, x, y):
-        super().__init__()
-
-        self.append(Box(x, y, COLOR_SNAKE))
+        """Called on instantiation."""
+        # Call Box's constructor
+        super().__init__(x, y, COLOR_SNAKE)
 
         # Store the directions
         self.direction = None
@@ -112,46 +121,47 @@ class Snake(list):
         # Store the box to eat
         self.to_eat = Box.generate_random()
 
-        self.frame_count = 0
+        # Store the tail
+        self.tail = list()
 
-    def draw(self, surface):
+    def draw(self, surface, font):
+        """Draws the snake with its tail to the surface."""
+        # First, draw the box of the snake
+        super().draw(surface)
 
-        box = self[0]
-        box.draw(surface)
+        # Draw the tail...
+        for box in self.tail:
 
-        x = box.x
-        y = box.y
+            # Get the box's index
+            index = self.tail.index(box) + 1
 
-        for box in self[1:]:
-            if self.last_direction == pygame.K_LEFT:
-
-                if self.direction == pygame.K_UP:
-                    box.x = x
-                    box.y = y + BOX_SIZE
-
-            box.draw(surface)
-
-        if self.frame_count == len(self):
-            self.frame_count = 0
-
-        """for i in range(0, len(self)):
-            box = self[i]
-            x = box.x
-            y = box.y
-
+            # Handle the box's coordinates according to the snake's direction...
             if self.direction == pygame.K_LEFT:
-                x += BOX_SIZE * i
+                box.x = self.x + BOX_SIZE * index
+                box.y = self.y
 
             elif self.direction == pygame.K_RIGHT:
-                x -= BOX_SIZE * i
+                box.x = self.x - BOX_SIZE * index
+                box.y = self.y
 
             elif self.direction == pygame.K_UP:
-                y += BOX_SIZE * i
+                box.x = self.x
+                box.y = self.y + BOX_SIZE * index
 
             elif self.direction == pygame.K_DOWN:
-                y -= BOX_SIZE * i
+                box.x = self.x
+                box.y = self.y - BOX_SIZE * index
 
-            box.draw(surface, x, y)"""
+            # Draw the box to the surface
+            box.draw(surface)
+
+        # Draw the scoreboard
+        text = font.render('SCORE: {0}'.format(len(self.tail)), 1, COLOR_BLACK)
+        pos = text.get_rect()
+        pos.centerx = 50
+        pos.centery += 20
+
+        surface.blit(text, pos)
 
     def handle_direction(self):
         """Changes the direction according to LEFT, RIGHT, UP and DOWN keys pressed."""
@@ -162,42 +172,32 @@ class Snake(list):
             return
 
         # If yes, handle the keys pressed...
-        box = self[0]
-
         if self.direction == pygame.K_LEFT:
-            box.x -= SNAKE_SPEED
+            self.x -= SNAKE_SPEED
 
         elif self.direction == pygame.K_RIGHT:
-            box.x += SNAKE_SPEED
+            self.x += SNAKE_SPEED
 
         elif self.direction == pygame.K_UP:
-            box.y -= SNAKE_SPEED
+            self.y -= SNAKE_SPEED
 
         elif self.direction == pygame.K_DOWN:
-            box.y += SNAKE_SPEED
+            self.y += SNAKE_SPEED
 
     def hit_wall(self):
         """Returns whether the snake has hit any wall."""
-        # Grab the first box
-        box = self[0]
-
-        # Check coordinates and return whether the head hits the wall
-        return box.x <= -box.width or box.x >= DISPLAY_INFO.current_w \
-            or box.y <= -box.height or box.y >= DISPLAY_INFO.current_h
+        return self.x <= -self.width or self.x >= DISPLAY_WIDTH \
+            or self.y <= -self.height or self.y >= DISPLAY_HEIGHT
 
     def hit_box(self):
         """Returns whether the snake has hit the box to eat."""
-        # Grab the first box
-        box = self[0]
-
-        # Call the other box's hit() method
-        return self.to_eat.hit(box.x, box.y)
+        return self.to_eat.hit(self.x, self.y)
 
 
 # ================================================
 # >> FUNCTIONS
 # ================================================
-def game_on(surface, snake):
+def game_on(surface, font, snake):
     """The game's main loop."""
     # Handle events...
     for event in pygame.event.get():
@@ -234,11 +234,8 @@ def game_on(surface, snake):
     # Did it hit another box?
     if snake.hit_box():
 
-        # Get the first box
-        box = snake[0]
-
         # Append a box to the snake's tail
-        snake.append(Box(box.x, box.y, COLOR_SNAKE))
+        snake.tail.append(Box(snake.x, snake.y, COLOR_SNAKE))
 
         # Generate another box for the snake
         snake.to_eat = Box.generate_random()
@@ -247,7 +244,7 @@ def game_on(surface, snake):
     surface.fill(COLOR_WHITE)
 
     # Draw the snake with its tail (reddish box)
-    snake.draw(surface)
+    snake.draw(surface, font)
 
     # Draw the box to eat (black box)
     pygame.draw.rect(surface, COLOR_BLACK, (snake.to_eat.x, snake.to_eat.y, BOX_SIZE, BOX_SIZE))
@@ -261,14 +258,17 @@ def game_start():
     # Set a caption
     pygame.display.set_caption('Snake')
 
+    # Create a font
+    font = pygame.font.Font(None, 20)
+
     # Get the display's surface
-    surface = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+    surface = pygame.display.set_mode((0, 0) if not DISPLAY_FLAGS else (DISPLAY_WIDTH, DISPLAY_HEIGHT), DISPLAY_FLAGS)
 
     # Get a Snake object
     snake = Snake(300, 300)
 
     # Update the display while the game is running...
-    while game_on(surface, snake):
+    while game_on(surface, font, snake):
         pygame.display.update()
 
     # Quit PyGame
