@@ -33,12 +33,41 @@ SNAKE_SPEED = 3
 # ================================================
 class Box(object):
 
+    """Stores information about a box and handles hit events."""
+
     def __init__(self, x, y):
+        """Called on instantiation."""
+        # Store X and Y coordinates
         self.x = x
         self.y = y
 
+        # Store width and height
         self.width = BOX_SIZE
-        self.heigt = BOX_SIZE
+        self.height = BOX_SIZE
+
+    def hit(self, x, y):
+        """Returns whether the two coordinates hit this box."""
+        return self.min_x <= x <= self.max_x and self.min_y <= y <= self.max_y
+
+    @property
+    def min_x(self):
+        """Returns the smalles X coordinate."""
+        return self.x - self.width
+
+    @property
+    def max_x(self):
+        """Returns the largest X coordinate."""
+        return self.x + self.width
+
+    @property
+    def min_y(self):
+        """Returns the smalles Y coordinate."""
+        return self.y - self.height
+
+    @property
+    def max_y(self):
+        """Returns the largest Y coordinate."""
+        return self.y + self.height
 
 
 class Snake(Box):
@@ -56,7 +85,7 @@ class Snake(Box):
         # Store the speed
         self.speed = SNAKE_SPEED
 
-        # Store the a to eat
+        # Store the box to eat
         self.to_eat = Box(randint(0, WINDOW_SIZE[0]), randint(0, WINDOW_SIZE[1]))
 
     def handle_movement(self):
@@ -85,12 +114,11 @@ class Snake(Box):
 
     def hit_wall(self):
         """Returns whether the snake has hit any wall."""
-        return self.x <= -self.width or self.x >= WINDOW_SIZE[0] or self.y <= -self.heigt or self.y >= WINDOW_SIZE[1]
+        return self.x <= -self.width or self.x >= WINDOW_SIZE[0] or self.y <= -self.height or self.y >= WINDOW_SIZE[1]
 
     def hit_box(self):
         """Returns whether the snake has hit the other box."""
-        return self.to_eat.x - BOX_SIZE <= self.x <= self.to_eat.x + BOX_SIZE \
-            and self.to_eat.y - BOX_SIZE <= self.y <= self.to_eat.y + BOX_SIZE
+        return self.to_eat.hit(self.x, self.y)
 
 
 # ================================================
@@ -132,10 +160,10 @@ def game_on(surface, snake):
     # Set a white background
     surface.fill(COLOR_WHITE)
 
-    # Draw the snake
-    pygame.draw.rect(surface, COLOR_SNAKE, (snake.x, snake.y, snake.width, snake.heigt))
+    # Draw the snake (reddish box)
+    pygame.draw.rect(surface, COLOR_SNAKE, (snake.x, snake.y, snake.width, snake.height))
 
-    # Draw the box to eat
+    # Draw the box to eat (black box)
     pygame.draw.rect(surface, COLOR_BLACK, (snake.to_eat.x, snake.to_eat.y, BOX_SIZE, BOX_SIZE))
 
     # Don't quit the main loop
