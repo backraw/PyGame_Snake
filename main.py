@@ -17,8 +17,9 @@ import pygame
 WINDOW_SIZE = (1024, 768)
 
 # Store colors
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
+COLOR_WHITE = (255, 255, 255)
+COLOR_BLACK = (0, 0, 0)
+COLOR_SNAKE = (170, 60, 0)
 
 # Store the size of a box
 BOX_SIZE = 10
@@ -129,13 +130,13 @@ def game_on(surface, snake):
         snake.to_eat = Box(randint(0, WINDOW_SIZE[0]), randint(0, WINDOW_SIZE[1]))
 
     # Set a white background
-    surface.fill(WHITE)
+    surface.fill(COLOR_WHITE)
 
     # Draw the snake
-    pygame.draw.rect(surface, BLACK, (snake.x, snake.y, snake.width, snake.heigt))
+    pygame.draw.rect(surface, COLOR_SNAKE, (snake.x, snake.y, snake.width, snake.heigt))
 
     # Draw the box to eat
-    pygame.draw.rect(surface, BLACK, (snake.to_eat.x, snake.to_eat.y, BOX_SIZE, BOX_SIZE))
+    pygame.draw.rect(surface, COLOR_BLACK, (snake.to_eat.x, snake.to_eat.y, BOX_SIZE, BOX_SIZE))
 
     # Don't quit the main loop
     return True
