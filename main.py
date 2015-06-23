@@ -12,7 +12,14 @@ from random import randint
 # PyGame Imports
 #   Core
 import pygame
-
+#   Display
+from pygame import display
+#   Event
+from pygame import event as events
+#   Draw
+from pygame.draw import rect
+#   Font
+from pygame.font import Font
 
 # Initialize PyGame
 pygame.init()
@@ -22,14 +29,17 @@ pygame.init()
 # >> CONSTANTS
 # ================================================
 # Store display info
-_DISPLAY_INFO = pygame.display.Info()
-DISPLAY_WIDTH = _DISPLAY_INFO.current_w
-DISPLAY_HEIGHT = _DISPLAY_INFO.current_h
+_display_info = pygame.display.Info()
 
-if DISPLAY_WIDTH > 1024 and DISPLAY_HEIGHT > 768:
-    DISPLAY_FLAGS = 0
+if _display_info.current_w > 1248:
+    DISPLAY_WIDTH = 1248
 else:
-    DISPLAY_FLAGS = pygame.FULLSCREEN
+    DISPLAY_WIDTH = _display_info.current_w
+
+if _display_info.current_h > 768:
+    DISPLAY_HEIGHT = 768
+else:
+    DISPLAY_HEIGHT = _display_info.current_h
 
 # Store opposite keys
 OPPOSITE_KEYS = {
@@ -64,12 +74,11 @@ class Box(object):
         self.x = x
         self.y = y
 
-        # Store width and height
-        self.width = BOX_SIZE
-        self.height = BOX_SIZE
-
         # Store the color
         self.color = color
+
+        # Store an indicator if it already hit the last vector
+        self.move_accordingly = False
 
     def hit(self, x, y):
         """Returns whether the two coordinates hit this box."""
@@ -77,27 +86,27 @@ class Box(object):
 
     def draw(self, surface):
         """Draws the box on the surface."""
-        pygame.draw.rect(surface, self.color, (self.x, self.y, BOX_SIZE, BOX_SIZE))
+        rect(surface, self.color, (self.x, self.y, BOX_SIZE, BOX_SIZE))
 
     @property
     def min_x(self):
         """Returns the smallest X coordinate."""
-        return self.x - self.width
+        return self.x - BOX_SIZE
 
     @property
     def max_x(self):
         """Returns the largest X coordinate."""
-        return self.x + self.width
+        return self.x + BOX_SIZE
 
     @property
     def min_y(self):
         """Returns the smallest Y coordinate."""
-        return self.y - self.height
+        return self.y - BOX_SIZE
 
     @property
     def max_y(self):
         """Returns the largest Y coordinate."""
-        return self.y + self.height
+        return self.y + BOX_SIZE
 
     @staticmethod
     def generate_random():
@@ -118,50 +127,92 @@ class Snake(Box):
         self.direction = None
         self.last_direction = None
 
-        # Store the box to eat
-        self.to_eat = Box.generate_random()
+        self.last_vector = None
 
         # Store the tail
         self.tail = list()
 
-    def draw(self, surface, font):
+        # Store the box to eat
+        self.to_eat = Box.generate_random()
+
+    def draw(self, surface):
         """Draws the snake with its tail to the surface."""
-        # First, draw the box of the snake
+        # First, draw this box
         super().draw(surface)
 
         # Draw the tail...
         for box in self.tail:
 
-            # Get the box's index
-            index = self.tail.index(box) + 1
+            # Generate a size
+            size = (self.tail.index(box) + 1) * BOX_SIZE
 
-            # Handle the box's coordinates according to the snake's direction...
-            if self.direction == pygame.K_LEFT:
-                box.x = self.x + BOX_SIZE * index
-                box.y = self.y
+            # TODO: get this to work..
+            if box.move_accordingly:
 
-            elif self.direction == pygame.K_RIGHT:
-                box.x = self.x - BOX_SIZE * index
-                box.y = self.y
+                if self.direction == pygame.K_LEFT:
+                    box.x = self.x + size
+                    box.y = self.y
 
-            elif self.direction == pygame.K_UP:
-                box.x = self.x
-                box.y = self.y + BOX_SIZE * index
+                elif self.direction == pygame.K_RIGHT:
+                    box.x = self.x - size
+                    box.y = self.y
 
-            elif self.direction == pygame.K_DOWN:
-                box.x = self.x
-                box.y = self.y - BOX_SIZE * index
+                elif self.direction == pygame.K_UP:
+                    box.x = self.x
+                    box.y = self.y + size
+
+                elif self.direction == pygame.K_DOWN:
+                    box.x = self.x
+                    box.y = self.y - size
+
+            else:
+
+                if self.direction == pygame.K_LEFT:
+
+                    if self.last_direction == pygame.K_UP:
+                        y = self.y + size
+                    else:
+                        y = self.y - size
+
+                    if (box.x, y) == self.last_vector:
+                        box.y = y
+                        box.move_accordingly = True
+
+                elif self.direction == pygame.K_RIGHT:
+
+                    if self.last_direction == pygame.K_UP:
+                        y = self.y + size
+                    else:
+                        y = self.y - size
+
+                    if (box.x, y) == self.last_vector:
+                        box.y = y
+                        box.move_accordingly = True
+
+                elif self.direction == pygame.K_UP:
+
+                    if self.last_direction == pygame.K_LEFT:
+                        x = self.x - size
+                    else:
+                        x = self.x + size
+
+                    if (x, box.y) == self.last_vector:
+                        box.x = x
+                        box.move_accordingly = True
+
+                else:
+
+                    if self.last_direction == pygame.K_LEFT:
+                        x = self.x + size
+                    else:
+                        x = self.x - size
+
+                    if (x, box.y) == self.last_vector:
+                        box.x = x
+                        box.move_accordingly = True
 
             # Draw the box to the surface
             box.draw(surface)
-
-        # Draw the scoreboard
-        text = font.render('SCORE: {0}'.format(len(self.tail)), 1, COLOR_BLACK)
-        pos = text.get_rect()
-        pos.centerx = 50
-        pos.centery += 20
-
-        surface.blit(text, pos)
 
     def handle_direction(self):
         """Changes the direction according to LEFT, RIGHT, UP and DOWN keys pressed."""
@@ -186,8 +237,8 @@ class Snake(Box):
 
     def hit_wall(self):
         """Returns whether the snake has hit any wall."""
-        return self.x <= -self.width or self.x >= DISPLAY_WIDTH \
-            or self.y <= -self.height or self.y >= DISPLAY_HEIGHT
+        return self.x <= -BOX_SIZE or self.x >= DISPLAY_WIDTH \
+            or self.y <= -BOX_SIZE or self.y >= DISPLAY_HEIGHT
 
     def hit_box(self):
         """Returns whether the snake has hit the box to eat."""
@@ -200,7 +251,7 @@ class Snake(Box):
 def game_on(surface, font, snake):
     """The game's main loop."""
     # Handle events...
-    for event in pygame.event.get():
+    for event in events.get():
 
         # Quit the main loop?
         if event.type == pygame.QUIT:
@@ -217,10 +268,16 @@ def game_on(surface, font, snake):
             if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT \
                     or event.key == pygame.K_UP or event.key == pygame.K_DOWN:
 
-                # If yes, change the snake's direction accordingly
-                if snake.direction != OPPOSITE_KEYS[event.key]:
+                # If yes, was an opposite key or the same key as last time pressed?
+                if snake.direction != OPPOSITE_KEYS[event.key] and snake.direction != event.key:
+
+                    # If no, change the snake's direction values
                     snake.last_direction = snake.direction
                     snake.direction = event.key
+                    snake.last_vector = (snake.x, snake.y)
+
+                    for box in snake.tail:
+                        box.move_accordingly = False
 
     # Handle the snake's direction changes
     snake.handle_direction()
@@ -244,10 +301,23 @@ def game_on(surface, font, snake):
     surface.fill(COLOR_WHITE)
 
     # Draw the snake with its tail (reddish box)
-    snake.draw(surface, font)
+    snake.draw(surface)
 
     # Draw the box to eat (black box)
-    pygame.draw.rect(surface, COLOR_BLACK, (snake.to_eat.x, snake.to_eat.y, BOX_SIZE, BOX_SIZE))
+    snake.to_eat.draw(surface)
+
+    # Render a font surface
+    text = font.render('SCORE: {0}'.format(len(snake.tail)), 1, COLOR_BLACK)
+
+    # Gets its current position
+    pos = text.get_rect()
+
+    # Change X and Y coordinates to top-left
+    pos.centerx = 50
+    pos.centery += 20
+
+    # Draw the scoreboard to the surface
+    surface.blit(text, pos)
 
     # Don't quit the main loop
     return True
@@ -256,20 +326,20 @@ def game_on(surface, font, snake):
 def game_start():
     """Configure PyGame and start the main loop."""
     # Set a caption
-    pygame.display.set_caption('Snake')
+    display.set_caption('Snake')
 
     # Create a font
-    font = pygame.font.Font(None, 20)
+    font = Font(None, 20)
 
     # Get the display's surface
-    surface = pygame.display.set_mode((0, 0) if not DISPLAY_FLAGS else (DISPLAY_WIDTH, DISPLAY_HEIGHT), DISPLAY_FLAGS)
+    surface = display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
 
     # Get a Snake object
     snake = Snake(300, 300)
 
     # Update the display while the game is running...
     while game_on(surface, font, snake):
-        pygame.display.update()
+        display.update()
 
     # Quit PyGame
     pygame.quit()
