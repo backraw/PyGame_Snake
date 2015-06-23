@@ -151,7 +151,7 @@ def game_start():
     # Get a Snake object
     snake = Snake(300, 300)
 
-    # Update the display white the game is running...
+    # Update the display while the game is running...
     while game_on(surface, snake):
         pygame.display.update()
 
